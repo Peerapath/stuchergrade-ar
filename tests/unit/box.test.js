@@ -6,7 +6,7 @@ import { advance, fakeObject } from '../helpers.js';
 
 const near = (a, b) => Math.abs(a - b) < 1e-9;
 
-test('open lifts first, slides at full lift, then lowers beside the box', async () => {
+test('open lifts first, slides toward the viewer at full lift, then lowers in front of the box', async () => {
   const tw = new Tweener();
   const lid = fakeObject();
   const box = new BoxController({ lid, tweener: tw });
@@ -15,14 +15,14 @@ test('open lifts first, slides at full lift, then lowers beside the box', async 
   assert.equal(box.busy, true);
   let slidBelowLift = false;
   await advance(tw, 1.2, () => {
-    const sliding = lid.position.x > 0 && lid.position.x < LID_SLIDE;
+    const sliding = lid.position.z > 0 && lid.position.z < LID_SLIDE;
     if (sliding && !near(lid.position.y, LID_LIFT)) slidBelowLift = true;
   });
   assert.equal(await opened, true);
   assert.equal(slidBelowLift, false);
   assert.equal(box.state, 'open');
   assert.equal(box.busy, false);
-  assert.ok(near(lid.position.x, LID_SLIDE));
+  assert.ok(near(lid.position.z, LID_SLIDE));
   assert.ok(near(lid.position.y, 0));
 });
 
@@ -43,7 +43,7 @@ test('close waits for beforeClose, then returns the lid home', async () => {
   const box = new BoxController({
     lid,
     tweener: tw,
-    beforeClose: async () => { order.push(`beforeClose@x=${lid.position.x.toFixed(2)}`); },
+    beforeClose: async () => { order.push(`beforeClose@z=${lid.position.z.toFixed(2)}`); },
   });
   const opened = box.open();
   await advance(tw, 1.2);
@@ -52,9 +52,9 @@ test('close waits for beforeClose, then returns the lid home', async () => {
   assert.equal(box.state, 'closing');
   await advance(tw, 1.2);
   assert.equal(await closed, true);
-  assert.deepEqual(order, [`beforeClose@x=${LID_SLIDE.toFixed(2)}`]);
+  assert.deepEqual(order, [`beforeClose@z=${LID_SLIDE.toFixed(2)}`]);
   assert.equal(box.state, 'closed');
-  assert.ok(near(lid.position.x, 0) && near(lid.position.y, 0));
+  assert.ok(near(lid.position.z, 0) && near(lid.position.y, 0));
 });
 
 test('close is ignored unless open', async () => {
@@ -131,7 +131,7 @@ test("'lid-closing' is notified after beforeClose, just before the lid moves; bo
     lid,
     tweener: tw,
     beforeClose: () => new Promise((resolve) => { releaseBeforeClose = () => { log.push('beforeClose done'); resolve(); }; }),
-    onStateChange: (state) => log.push(`${state}|state=${box.state}|x=${lid.position.x.toFixed(2)}|y=${lid.position.y.toFixed(2)}`),
+    onStateChange: (state) => log.push(`${state}|state=${box.state}|z=${lid.position.z.toFixed(2)}|y=${lid.position.y.toFixed(2)}`),
   });
   const opened = box.open();
   await advance(tw, 1.2);
@@ -139,13 +139,26 @@ test("'lid-closing' is notified after beforeClose, just before the lid moves; bo
   log.length = 0;
   const closed = box.close();
   await advance(tw, 0.5); // beforeClose still pending: no lid-closing yet, lid has not moved
-  assert.deepEqual(log, [`closing|state=closing|x=${LID_SLIDE.toFixed(2)}|y=0.00`]);
+  assert.deepEqual(log, [`closing|state=closing|z=${LID_SLIDE.toFixed(2)}|y=0.00`]);
   releaseBeforeClose();
   await advance(tw, 1.2);
   await closed;
   assert.deepEqual(log.slice(1), [
     'beforeClose done',
-    `lid-closing|state=closing|x=${LID_SLIDE.toFixed(2)}|y=0.00`,
-    'closed|state=closed|x=0.00|y=0.00',
+    `lid-closing|state=closing|z=${LID_SLIDE.toFixed(2)}|y=0.00`,
+    'closed|state=closed|z=0.00|y=0.00',
   ]);
+});
+
+test('the lid slides 0.17 m toward the viewer (+z), clear of the base, and never sideways', async () => {
+  const tw = new Tweener();
+  const lid = fakeObject();
+  const box = new BoxController({ lid, tweener: tw });
+  const opened = box.open();
+  let movedSideways = false;
+  await advance(tw, 1.2, () => { if (!near(lid.position.x, 0)) movedSideways = true; });
+  await opened;
+  assert.equal(LID_SLIDE, 0.17);
+  assert.equal(movedSideways, false);
+  assert.ok(near(lid.position.z, 0.17));
 });

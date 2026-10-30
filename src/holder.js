@@ -6,7 +6,7 @@ import { easeInOut } from './tween.js';
 const SCREEN_FILL = 0.8; // free view: the framed length fills this fraction of the screen width
 
 // Free-view framing, in marker widths: `length` is what must fit the screen width, `shift` is how far the
-// framed centre lies along the box's long axis from the base centre (0 now: the open box is framed on the base; the lid lying beside it may be partly off-screen).
+// framed centre lies along the box's long axis from the base centre (0 now: the open box is framed on the base; the lid lies in front of it, below on screen).
 export const FRAMING_CLOSED = Object.freeze({ length: 3, shift: 0 });
 export const FRAMING_OPEN = Object.freeze({ length: 3.4, shift: 0 });
 

@@ -13,6 +13,7 @@ function releaseCamera(mindar) {
   const video = mindar.video;
   video?.srcObject?.getTracks().forEach((track) => track.stop());
   video?.remove();
+  mindar.video = null; // MindAR's window-resize handler bails out without a video; otherwise it throws after a failed start
 }
 
 export async function startAR({ container, targetSrc, onFound, onLost }) {
