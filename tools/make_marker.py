@@ -13,7 +13,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 sys.stdout.reconfigure(encoding="utf-8")
 
-URL = "https://peerapath.github.io/stuchergrade-ar/"
+URL = "https://peerapath.github.io/stuchergrade-ar/?openExternalBrowser=1"
 ROOT = Path(__file__).resolve().parents[1]
 SRC = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(r"C:\Users\Benz\Downloads\asset")
 OUT = ROOT / "marker"
