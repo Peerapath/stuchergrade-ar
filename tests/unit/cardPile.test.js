@@ -113,3 +113,36 @@ test('stack height uses CARD_GAP', () => {
   pile.build();
   assert.ok(near(pile.topY, 0.002 + 2 * CARD_GAP));
 });
+
+test('fan failure removes added cards and leaves the pile stacked and usable', async () => {
+  const { pile } = makePile(30);
+  pile.build();
+  const working = pile.makeCard;
+  let calls = 0;
+  pile.makeCard = (face) => {
+    if (++calls === 3) throw new Error('no card');
+    return working(face);
+  };
+  await assert.rejects(pile.fan(), /no card/);
+  assert.equal(pile.state, 'stacked');
+  assert.equal(pile.fanGroup.children.length, 0);
+  assert.equal(pile.fanCards.length, 0);
+  pile.makeCard = working;
+  const again = pile.fan();
+  await advance(pile.tweener, 1.0);
+  assert.equal(await again, true);
+  assert.equal(pile.state, 'fanned');
+});
+
+test('collapse failure still clears the fan and leaves the pile stacked', async () => {
+  const { pile } = makePile(30);
+  pile.build();
+  const f = pile.fan();
+  await advance(pile.tweener, 1.0);
+  await f;
+  pile.tweener = { to: () => Promise.reject(new Error('tween')) };
+  await assert.rejects(pile.collapse(), /tween/);
+  assert.equal(pile.state, 'stacked');
+  assert.equal(pile.fanGroup.children.length, 0);
+  assert.equal(pile.fanCards.length, 0);
+});

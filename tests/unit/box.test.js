@@ -62,3 +62,35 @@ test('close is ignored unless open', async () => {
   assert.equal(await box.close(), false);
   assert.equal(box.state, 'closed');
 });
+
+test('close recovers to open when beforeClose rejects', async () => {
+  const tw = new Tweener();
+  const lid = fakeObject();
+  let fail = true;
+  const box = new BoxController({
+    lid,
+    tweener: tw,
+    beforeClose: async () => { if (fail) throw new Error('boom'); },
+  });
+  const opened = box.open();
+  await advance(tw, 1.2);
+  await opened;
+  await assert.rejects(box.close(), /boom/);
+  assert.equal(box.state, 'open');
+  assert.equal(box.busy, false);
+  fail = false;
+  const closed = box.close();
+  await advance(tw, 1.2);
+  assert.equal(await closed, true);
+  assert.equal(box.state, 'closed');
+});
+
+test('open recovers to closed when a tween rejects', async () => {
+  const box = new BoxController({
+    lid: fakeObject(),
+    tweener: { to: () => Promise.reject(new Error('x')) },
+  });
+  await assert.rejects(box.open(), /x/);
+  assert.equal(box.state, 'closed');
+  assert.equal(box.busy, false);
+});

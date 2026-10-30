@@ -67,48 +67,66 @@ export class CardPile {
     }
   }
 
+  #removeFanCards(cards) {
+    for (const card of cards) this.fanGroup.remove(card);
+    this.fanCards = [];
+  }
+
   async fan() {
     if (this.state !== 'stacked') return false;
     this.state = 'fanning';
-    const startY = this.topY - this.fanGroup.position.y;
-    const picks = pickRandom(this.faces, FAN_COUNT, this.rng);
-    const layout = fanLayout(picks.length);
-    this.fanCards = picks.map((face) => {
-      const card = this.makeCard(face);
-      card.userData.role = `fanCard:${this.id}`;
-      card.rotation.order = 'ZYX';
-      Object.assign(card.rotation, { x: Math.PI, y: 0, z: 0 });
-      Object.assign(card.position, { x: 0, y: startY, z: 0 });
-      this.fanGroup.add(card);
-      return card;
-    });
-    await Promise.all(this.fanCards.map(async (card, i) => {
-      const slot = layout[i];
-      await this.tweener.to(card.position, { y: 0, z: slot.z }, 0.4);
-      await Promise.all([
-        this.tweener.to(card.rotation, { x: Math.PI / 2, z: slot.rotZ }, 0.4),
-        this.tweener.to(card.position, { x: slot.x, y: slot.y }, 0.4),
-      ]);
-    }));
-    this.state = 'fanned';
-    return true;
+    const added = [];
+    try {
+      const startY = this.topY - this.fanGroup.position.y;
+      const picks = pickRandom(this.faces, FAN_COUNT, this.rng);
+      const layout = fanLayout(picks.length);
+      this.fanCards = picks.map((face) => {
+        const card = this.makeCard(face);
+        card.userData.role = `fanCard:${this.id}`;
+        card.rotation.order = 'ZYX';
+        Object.assign(card.rotation, { x: Math.PI, y: 0, z: 0 });
+        Object.assign(card.position, { x: 0, y: startY, z: 0 });
+        this.fanGroup.add(card);
+        added.push(card);
+        return card;
+      });
+      await Promise.all(this.fanCards.map(async (card, i) => {
+        const slot = layout[i];
+        await this.tweener.to(card.position, { y: 0, z: slot.z }, 0.4);
+        await Promise.all([
+          this.tweener.to(card.rotation, { x: Math.PI / 2, z: slot.rotZ }, 0.4),
+          this.tweener.to(card.position, { x: slot.x, y: slot.y }, 0.4),
+        ]);
+      }));
+      this.state = 'fanned';
+      return true;
+    } catch (err) {
+      this.#removeFanCards(added);
+      this.state = 'stacked';
+      throw err;
+    }
   }
 
   async collapse() {
     if (this.state !== 'fanned') return false;
     this.state = 'collapsing';
-    const startY = this.topY - this.fanGroup.position.y;
-    await Promise.all(this.fanCards.map(async (card) => {
-      await Promise.all([
-        this.tweener.to(card.rotation, { x: Math.PI, z: 0 }, 0.4),
-        this.tweener.to(card.position, { x: 0, y: 0 }, 0.4),
-      ]);
-      await this.tweener.to(card.position, { y: startY, z: 0 }, 0.4);
-    }));
-    for (const card of this.fanCards) this.fanGroup.remove(card);
-    this.fanCards = [];
-    this.state = 'stacked';
-    return true;
+    try {
+      const startY = this.topY - this.fanGroup.position.y;
+      await Promise.all(this.fanCards.map(async (card) => {
+        await Promise.all([
+          this.tweener.to(card.rotation, { x: Math.PI, z: 0 }, 0.4),
+          this.tweener.to(card.position, { x: 0, y: 0 }, 0.4),
+        ]);
+        await this.tweener.to(card.position, { y: startY, z: 0 }, 0.4);
+      }));
+      this.#removeFanCards(this.fanCards);
+      this.state = 'stacked';
+      return true;
+    } catch (err) {
+      this.#removeFanCards(this.fanCards);
+      this.state = 'stacked';
+      throw err;
+    }
   }
 
   toggle() {
