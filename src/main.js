@@ -11,6 +11,12 @@ import { isCameraDenied } from './cameraError.js';
 const overlay = new Overlay(document.getElementById('overlay'));
 const container = document.getElementById('ar');
 const debug = new URLSearchParams(location.search).has('debug');
+let failed = false; // once an error/denied overlay is shown, late MindAR callbacks must not replace it
+
+function fail(state) {
+  failed = true;
+  overlay.show(state);
+}
 
 async function loadAssets() {
   const loader = new GLTFLoader();
@@ -44,8 +50,8 @@ async function startStage() {
   const stage = await startAR({
     container,
     targetSrc: 'assets/targets/targets.mind',
-    onFound: () => { tracking = true; overlay.show('hidden'); },
-    onLost: () => { tracking = false; overlay.show('scan'); },
+    onFound: () => { if (failed) return; tracking = true; overlay.show('hidden'); },
+    onLost: () => { if (failed) return; tracking = false; overlay.show('scan'); },
   });
   overlay.show(tracking ? 'hidden' : 'scan');
   return stage;
@@ -63,7 +69,7 @@ async function main() {
     assets = await loadAssets();
   } catch (err) {
     console.error(err);
-    overlay.show('error');
+    fail('error');
     return;
   }
 
@@ -75,7 +81,7 @@ async function main() {
     built.content.scale.setScalar(1 / TARGET_WIDTH_M);
   } catch (err) {
     console.error(err);
-    overlay.show('error');
+    fail('error');
     return;
   }
 
@@ -84,7 +90,7 @@ async function main() {
     stage = await startStage();
   } catch (err) {
     console.error(err);
-    overlay.show(isCameraDenied(err) || (await cameraDenied()) ? 'denied' : 'error');
+    fail(isCameraDenied(err) || (await cameraDenied()) ? 'denied' : 'error');
     return;
   }
 
@@ -114,11 +120,11 @@ async function main() {
     window.__app = { ...built, stage, tweener };
   } catch (err) {
     console.error(err);
-    overlay.show('error');
+    fail('error');
   }
 }
 
 main().catch((err) => {
   console.error(err);
-  overlay.show('error');
+  fail('error');
 });

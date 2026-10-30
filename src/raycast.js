@@ -9,6 +9,7 @@ export function attachTap({ element, canvas, camera, root, onRole }) {
   const ndc = new Vector2();
   let down = null;
   element.addEventListener('pointerdown', (e) => { down = { x: e.clientX, y: e.clientY }; });
+  element.addEventListener('pointercancel', () => { down = null; });
   element.addEventListener('pointerup', (e) => {
     const isTap = down && Math.hypot(e.clientX - down.x, e.clientY - down.y) <= MAX_TAP_MOVE_PX;
     down = null;

@@ -16,6 +16,12 @@ http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, 'http://localhost');
     if (req.method === 'POST' && url.pathname === '/__save-target') {
+      const origin = req.headers.origin;
+      if (origin !== undefined && origin !== `http://localhost:${port}` && origin !== `http://127.0.0.1:${port}`) {
+        res.writeHead(403, { 'Content-Type': 'text/plain' });
+        res.end('forbidden origin');
+        return;
+      }
       const chunks = [];
       for await (const c of req) chunks.push(c);
       const body = Buffer.concat(chunks);

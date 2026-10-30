@@ -17,6 +17,19 @@ export class Overlay {
     this.element = element;
   }
 
+  // Clipboard missing or rejected: show the URL as selectable text so it can be copied by hand.
+  showUrl() {
+    if (this.element.querySelector('[data-url]')) return;
+    const url = document.createElement('p');
+    url.dataset.url = '';
+    url.style.userSelect = 'all';
+    url.style.pointerEvents = 'auto';
+    url.style.wordBreak = 'break-all';
+    url.style.marginTop = '10px';
+    url.textContent = location.href;
+    this.element.append(url);
+  }
+
   show(state) {
     if (state === 'hidden') {
       this.element.hidden = true;
@@ -33,7 +46,13 @@ export class Overlay {
     button.textContent = message.button;
     button.addEventListener('click', () => {
       if (message.action === 'reload') location.reload();
-      else navigator.clipboard?.writeText(location.href).then(() => { button.textContent = 'คัดลอกแล้ว'; });
+      else if (!navigator.clipboard?.writeText) this.showUrl();
+      else {
+        navigator.clipboard.writeText(location.href).then(
+          () => { button.textContent = 'คัดลอกแล้ว'; },
+          () => this.showUrl(),
+        );
+      }
     });
     this.element.append(button);
   }

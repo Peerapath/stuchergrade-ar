@@ -4,11 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>StuCher Grade AR</title>
+<link rel="icon" href="data:,">
 <style>
   html, body { margin: 0; height: 100%; overflow: hidden; background: #000; font-family: system-ui, sans-serif; }
   #ar { position: fixed; inset: 0; overflow: hidden; touch-action: none; }
   #overlay {
-    position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+    position: fixed; left: 16px; right: 16px; margin-inline: auto; width: fit-content;
+    bottom: calc(24px + env(safe-area-inset-bottom)); transform: none;
     max-width: calc(100% - 32px); box-sizing: border-box; padding: 12px 16px; border-radius: 12px;
     background: rgba(0, 0, 0, 0.65); color: #fff; text-align: center; white-space: pre-line;
     pointer-events: none; z-index: 10;
@@ -31,7 +33,19 @@
 </head>
 <body>
 <div id="ar"></div>
-<div id="overlay"></div>
-<script type="module" src="./src/main.js"></script>
+<div id="overlay"><p>กำลังโหลด…</p></div>
+<script type="module">
+  import('./src/main.js').catch((err) => {
+    console.error(err);
+    const overlay = document.getElementById('overlay');
+    const text = document.createElement('p');
+    text.textContent = 'โหลดไม่สำเร็จ';
+    const button = document.createElement('button');
+    button.textContent = 'โหลดใหม่';
+    button.addEventListener('click', () => location.reload());
+    overlay.replaceChildren(text, button);
+    overlay.hidden = false;
+  });
+</script>
 </body>
 </html>
