@@ -17,7 +17,9 @@
     await compiler.compileImageTargets([img], (p) => { document.title = `compile ${Math.round(p)}%`; });
     const buffer = compiler.exportData();
     const res = await fetch('/__save-target', { method: 'POST', body: buffer });
-    log(await res.text());
+    const text = await res.text();
+    if (!res.ok) throw new Error(`save failed: ${res.status} ${text}`);
+    log(text);
     window.__compileResult = 'ok';
   } catch (err) {
     log(`error: ${err}`);
