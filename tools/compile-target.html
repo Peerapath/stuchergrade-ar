@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Compile MindAR target</title>
+</head>
+<body>
+<pre id="log">compiling…</pre>
+<script type="module">
+  import { Compiler } from '../vendor/mind-ar/mindar-image.prod.js';
+  const log = (msg) => { document.getElementById('log').textContent += `\n${msg}`; };
+  try {
+    const img = new Image();
+    img.src = '../marker/stuchergrade-marker.png';
+    await img.decode();
+    const compiler = new Compiler();
+    await compiler.compileImageTargets([img], (p) => { document.title = `compile ${Math.round(p)}%`; });
+    const buffer = compiler.exportData();
+    const res = await fetch('/__save-target', { method: 'POST', body: buffer });
+    log(await res.text());
+    window.__compileResult = 'ok';
+  } catch (err) {
+    log(`error: ${err}`);
+    window.__compileResult = `error: ${err}`;
+  }
+</script>
+</body>
+</html>
