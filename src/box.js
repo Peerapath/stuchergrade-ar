@@ -42,6 +42,7 @@ export class BoxController {
     this.#set('closing');
     try {
       await this.beforeClose();
+      this.onStateChange('lid-closing'); // notification only: box.state stays 'closing'
       const p = this.lid.position;
       await this.tweener.to(p, { y: LID_LIFT }, 0.2);
       await this.tweener.to(p, { x: 0 }, 0.4);

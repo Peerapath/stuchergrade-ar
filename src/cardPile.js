@@ -5,7 +5,7 @@ export const CARD_GAP = 0.0004;
 export const FAN_COUNT = 5;
 export const FAN_HEIGHT = 0.08;
 export const FAN_SPREAD = Math.PI / 15;
-export const FAN_STEP_X = 0.055;
+export const FAN_STEP_X = 0.04;
 const JITTER_POS = 0.001;
 const JITTER_ROT = (2 * Math.PI) / 180;
 

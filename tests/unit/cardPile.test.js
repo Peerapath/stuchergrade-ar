@@ -41,7 +41,8 @@ test('fanLayout is flat: yaw ±FAN_SPREAD at the ends, layered upward, ends set 
   assert.ok(near(FAN_SPREAD, (12 * Math.PI) / 180));
   assert.ok(near(l[0].rotY, FAN_SPREAD) && near(l[4].rotY, -FAN_SPREAD) && near(l[2].rotY, 0));
   assert.ok(near(l[0].x, -l[4].x) && l[0].x < 0 && near(l[2].x, 0));
-  assert.ok(near(l[4].x, (FAN_STEP_X * 4) / 2));
+  assert.equal(FAN_STEP_X, 0.04);
+  assert.ok(near(l[4].x, (FAN_STEP_X * 4) / 2) && near(l[4].x, 0.08));
   l.forEach((slot, i) => assert.ok(near(slot.y, i * 0.002)));
   assert.ok(near(l[0].z, 0.01) && near(l[4].z, 0.01) && near(l[2].z, 0));
   assert.deepEqual(fanLayout(1), [{ x: 0, y: 0, z: 0, rotY: 0 }]);

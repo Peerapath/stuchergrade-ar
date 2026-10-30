@@ -109,8 +109,10 @@ async function main() {
       markerScale: stage.markerScale,
     });
     addLights(stage.scene);
-    // Reframe the free view as the lid starts opening / closing (also covers a failed open/close reverting).
+    // Reframe the free view as the lid starts opening, and on closing only once the fans have collapsed and
+    // the lid starts back ('lid-closing'); 'closing' alone changes nothing. Also covers a failed open/close.
     built.box.onStateChange = (state) => {
+      if (state === 'closing') return;
       const to = state === 'opening' || state === 'open' ? FRAMING_OPEN : FRAMING_CLOSED;
       tweener.to(holder.framing, { length: to.length, shift: to.shift }, 0.6);
     };

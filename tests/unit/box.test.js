@@ -109,7 +109,7 @@ test('onStateChange fires on every transition, including failure recovery', asyn
   const closed = box.close();
   await advance(tw, 1.2);
   await closed;
-  assert.deepEqual(seen, ['opening', 'open', 'closing', 'closed']);
+  assert.deepEqual(seen, ['opening', 'open', 'closing', 'lid-closing', 'closed']);
 
   const failing = new BoxController({
     lid: fakeObject(),
@@ -119,4 +119,33 @@ test('onStateChange fires on every transition, including failure recovery', asyn
   seen.length = 0;
   await assert.rejects(failing.open(), /x/);
   assert.deepEqual(seen, ['opening', 'closed']);
+});
+
+test("'lid-closing' is notified after beforeClose, just before the lid moves; box.state stays 'closing'", async () => {
+  const tw = new Tweener();
+  const lid = fakeObject();
+  const log = [];
+  let releaseBeforeClose;
+  let box;
+  box = new BoxController({
+    lid,
+    tweener: tw,
+    beforeClose: () => new Promise((resolve) => { releaseBeforeClose = () => { log.push('beforeClose done'); resolve(); }; }),
+    onStateChange: (state) => log.push(`${state}|state=${box.state}|x=${lid.position.x.toFixed(2)}|y=${lid.position.y.toFixed(2)}`),
+  });
+  const opened = box.open();
+  await advance(tw, 1.2);
+  await opened;
+  log.length = 0;
+  const closed = box.close();
+  await advance(tw, 0.5); // beforeClose still pending: no lid-closing yet, lid has not moved
+  assert.deepEqual(log, [`closing|state=closing|x=${LID_SLIDE.toFixed(2)}|y=0.00`]);
+  releaseBeforeClose();
+  await advance(tw, 1.2);
+  await closed;
+  assert.deepEqual(log.slice(1), [
+    'beforeClose done',
+    `lid-closing|state=closing|x=${LID_SLIDE.toFixed(2)}|y=0.00`,
+    'closed|state=closed|x=0.00|y=0.00',
+  ]);
 });
