@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Tweener } from '../../src/tween.js';
 import {
-  CardPile, pickRandom, fanLayout, PILE_MAX_STACK, CARD_GAP, FAN_COUNT, FAN_HEIGHT, FAN_SPREAD, FAN_STEP_X,
+  CardPile, pickRandom, fanLayout, PILE_MAX_STACK, CARD_GAP, FAN_COUNT, FAN_HEIGHT, FAN_SPREAD, FAN_STEP_X, FAN_BACK,
 } from '../../src/cardPile.js';
 import { advance, fakeObject } from '../helpers.js';
 
@@ -35,7 +35,7 @@ test('pickRandom returns n distinct items, or all when fewer', () => {
   assert.equal(pickRandom(faces(3), 5).length, 3);
 });
 
-test('fanLayout is flat: yaw ±FAN_SPREAD at the ends, layered upward, ends set back', () => {
+test('fanLayout is flat: yaw ±FAN_SPREAD at the ends, layered upward, pushed back behind the pile', () => {
   const l = fanLayout(5);
   assert.equal(l.length, 5);
   assert.ok(near(FAN_SPREAD, (12 * Math.PI) / 180));
@@ -44,8 +44,9 @@ test('fanLayout is flat: yaw ±FAN_SPREAD at the ends, layered upward, ends set 
   assert.equal(FAN_STEP_X, 0.04);
   assert.ok(near(l[4].x, (FAN_STEP_X * 4) / 2) && near(l[4].x, 0.08));
   l.forEach((slot, i) => assert.ok(near(slot.y, i * 0.002)));
-  assert.ok(near(l[0].z, 0.01) && near(l[4].z, 0.01) && near(l[2].z, 0));
-  assert.deepEqual(fanLayout(1), [{ x: 0, y: 0, z: 0, rotY: 0 }]);
+  assert.equal(FAN_BACK, 0.14);
+  assert.ok(near(l[0].z, 0.01 - FAN_BACK) && near(l[4].z, 0.01 - FAN_BACK) && near(l[2].z, -FAN_BACK));
+  assert.deepEqual(fanLayout(1), [{ x: 0, y: 0, z: -FAN_BACK, rotY: 0 }]);
 });
 
 test('build stacks up to PILE_MAX_STACK face-down cards with the pile role', () => {
@@ -57,8 +58,8 @@ test('build stacks up to PILE_MAX_STACK face-down cards with the pile role', () 
   assert.ok(pile.stack[1].position.y > pile.stack[0].position.y);
   assert.ok(near(pile.stack[0].position.x, -0.045));
   assert.ok(parent.children.includes(pile.fanGroup));
-  assert.ok(near(pile.fanGroup.position.y, 0.002 + 0.08));
-  assert.equal(FAN_HEIGHT, 0.08);
+  assert.ok(near(pile.fanGroup.position.y, 0.002 + 0.12));
+  assert.equal(FAN_HEIGHT, 0.12);
 });
 
 test('fan raises FAN_COUNT distinct face-up cards into the fan layout', async () => {

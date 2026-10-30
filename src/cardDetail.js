@@ -8,7 +8,13 @@ export class CardDetail {
     this.caption = document.createElement('p');
     this.caption.textContent = 'แตะเพื่อปิด';
     element.replaceChildren(this.image, this.caption);
-    element.addEventListener('click', () => this.hide());
+    // Close only on a tap that started on this view. On phones the tap that opens the view is
+    // followed by a compatibility click that can land on it straight away and would close it.
+    this.armed = false;
+    element.addEventListener('pointerdown', () => { this.armed = true; });
+    element.addEventListener('click', () => {
+      if (this.armed) this.hide();
+    });
   }
 
   get isOpen() {
@@ -16,6 +22,7 @@ export class CardDetail {
   }
 
   show(url) {
+    this.armed = false;
     this.image.src = url;
     this.element.hidden = false;
   }

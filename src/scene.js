@@ -72,12 +72,24 @@ export function addLights(scene) {
 }
 
 const cameraLocal = new THREE.Vector3();
+const screenDown = new THREE.Vector3();
+const tmpQuat = new THREE.Quaternion();
+const contentQuat = new THREE.Quaternion();
 
+// Yaws each fan so its +Z points toward the viewer. The horizontal direction to the camera
+// vanishes when looking straight down, so the camera's screen-down direction (projected onto the
+// box plane) is added: it points toward the viewer from above and fades out in side views.
 export function faceFansToCamera(piles, camera, content) {
   camera.getWorldPosition(cameraLocal);
   content.worldToLocal(cameraLocal);
+  camera.getWorldQuaternion(tmpQuat);
+  content.getWorldQuaternion(contentQuat).invert();
+  screenDown.set(0, -1, 0).applyQuaternion(tmpQuat).applyQuaternion(contentQuat);
   for (const pile of Object.values(piles)) {
     const g = pile.fanGroup;
-    g.rotation.y = Math.atan2(cameraLocal.x - g.position.x, cameraLocal.z - g.position.z);
+    const dx = cameraLocal.x - g.position.x;
+    const dz = cameraLocal.z - g.position.z;
+    const dist = Math.hypot(dx, cameraLocal.y - g.position.y, dz) || 1;
+    g.rotation.y = Math.atan2(dx / dist + screenDown.x, dz / dist + screenDown.z);
   }
 }

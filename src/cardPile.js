@@ -3,7 +3,10 @@
 export const PILE_MAX_STACK = 20;
 export const CARD_GAP = 0.0004;
 export const FAN_COUNT = 5;
-export const FAN_HEIGHT = 0.08;
+export const FAN_HEIGHT = 0.12;
+// Fan sits this far behind its pile (fanGroup faces the camera, so -Z is away from the viewer):
+// the lifted cards never cover the pile, which must stay tappable to put them back.
+export const FAN_BACK = 0.14;
 export const FAN_SPREAD = Math.PI / 15;
 export const FAN_STEP_X = 0.04;
 const JITTER_POS = 0.001;
@@ -19,13 +22,13 @@ export function pickRandom(items, n, rng = Math.random) {
 }
 
 export function fanLayout(count) {
-  if (count === 1) return [{ x: 0, y: 0, z: 0, rotY: 0 }];
+  if (count === 1) return [{ x: 0, y: 0, z: -FAN_BACK, rotY: 0 }];
   return Array.from({ length: count }, (_, i) => {
     const t = (i / (count - 1)) * 2 - 1;
     return {
       x: (t * FAN_STEP_X * (count - 1)) / 2,
       y: i * 0.002,
-      z: Math.abs(t) * 0.01,
+      z: Math.abs(t) * 0.01 - FAN_BACK,
       rotY: -t * FAN_SPREAD,
     };
   });
