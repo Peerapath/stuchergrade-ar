@@ -3,7 +3,11 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { Tweener } from './tween.js';
 import { dispatchTap } from './tap.js';
-import { attachTap } from './raycast.js';
+import { pickRole } from './raycast.js';
+import { attachInput } from './input.js';
+import { createHolder } from './holder.js';
+import { FreeView } from './freeView.js';
+import { ViewMode } from './viewMode.js';
 import { buildContent, addLights, faceFansToCamera, TARGET_WIDTH_M } from './scene.js';
 import { Overlay } from './overlay.js';
 import { isCameraDenied } from './cameraError.js';
@@ -11,6 +15,7 @@ import { isCameraDenied } from './cameraError.js';
 const overlay = new Overlay(document.getElementById('overlay'));
 const container = document.getElementById('ar');
 const debug = new URLSearchParams(location.search).has('debug');
+let tracking = false; // QR currently seen (AR stage only; stays false in debug)
 let failed = false; // once an error/denied overlay is shown, late MindAR callbacks must not replace it
 
 function fail(state) {
@@ -46,7 +51,6 @@ async function startStage() {
     return startDebug({ container });
   }
   const { startAR } = await import('./ar.js');
-  let tracking = false;
   const stage = await startAR({
     container,
     targetSrc: 'assets/targets/targets.mind',
@@ -95,29 +99,39 @@ async function main() {
   }
 
   try {
-    stage.root.add(built.content);
-    addLights(stage.scene);
-    attachTap({
-      element: container,
-      canvas: stage.renderer.domElement,
+    const freeView = new FreeView();
+    const viewMode = new ViewMode();
+    const holder = createHolder({
+      scene: stage.scene,
+      content: built.content,
       camera: stage.camera,
-      root: stage.root,
-      onRole: async (role) => {
+      markerScale: stage.markerScale,
+    });
+    addLights(stage.scene);
+    attachInput({
+      element: container,
+      onTap: async (x, y) => {
         try {
-          await dispatchTap(role, built);
+          const role = pickRole({ x, y, canvas: stage.renderer.domElement, camera: stage.camera, root: holder.holder });
+          if (role) await dispatchTap(role, built);
         } catch (err) {
           console.error(err);
         }
       },
+      onRotate: (dx, dy) => freeView.rotate(dx, dy, { allowPitch: viewMode.mode === 'free' }),
+      onZoom: (factor) => freeView.zoomBy(factor),
     });
 
     const clock = new THREE.Clock();
     stage.renderer.setAnimationLoop(() => {
-      tweener.update(Math.min(clock.getDelta(), 0.1));
+      const dt = Math.min(clock.getDelta(), 0.1);
+      tweener.update(dt);
+      holder.update({ anchor: stage.anchor, tracking, freeView, viewMode, dt });
+      holder.holder.updateMatrixWorld(true); // fans read content.matrixWorld below
       faceFansToCamera(built.piles, stage.camera, built.content);
       stage.renderer.render(stage.scene, stage.camera);
     });
-    window.__app = { ...built, stage, tweener };
+    window.__app = { ...built, stage, tweener, freeView, viewMode, holder };
   } catch (err) {
     console.error(err);
     fail('error');

@@ -1,6 +1,7 @@
 // MindAR image-tracking stage. Rejects if the camera cannot start.
 // A denied camera rejects with the original DOMException; any other start failure rejects with 'AR start failed'.
 // The camera is opened once on success: the getUserMedia probe runs only after mindar.start() has failed.
+import { Vector3, Quaternion, Matrix4 } from 'three';
 import { MindARThree } from '../vendor/mind-ar/mindar-image-three.prod.js';
 
 async function probeCamera() {
@@ -34,5 +35,8 @@ export async function startAR({ container, targetSrc, onFound, onLost }) {
     await probeCamera();
     throw new Error('AR start failed', { cause: err });
   }
-  return { renderer: mindar.renderer, scene: mindar.scene, camera: mindar.camera, root: anchor.group };
+  // postMatrixs[0] is composed with scale = marker width in world units.
+  const markerScale = new Vector3();
+  new Matrix4().copy(mindar.postMatrixs[0]).decompose(new Vector3(), new Quaternion(), markerScale);
+  return { renderer: mindar.renderer, scene: mindar.scene, camera: mindar.camera, anchor: anchor.group, markerScale: markerScale.x };
 }
