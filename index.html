@@ -21,6 +21,14 @@
     pointer-events: auto; margin-top: 10px; padding: 8px 16px; font-size: 16px;
     border: 0; border-radius: 8px; background: #2d6cdf; color: #fff;
   }
+  #card-detail {
+    position: fixed; inset: 0; z-index: 20; box-sizing: border-box; padding: 16px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+    background: rgba(0, 0, 0, 0.85); cursor: pointer; touch-action: none;
+  }
+  #card-detail[hidden] { display: none; }
+  #card-detail img { max-width: 92vw; max-height: 86vh; object-fit: contain; border-radius: 12px; }
+  #card-detail p { margin: 0; color: #fff; font-size: 16px; line-height: 1.5; }
 </style>
 <script type="importmap">
 {
@@ -33,6 +41,7 @@
 </head>
 <body>
 <div id="ar"></div>
+<div id="card-detail" hidden></div>
 <div id="overlay"><p>กำลังโหลด…</p></div>
 <script type="module">
   import('./src/main.js').catch((err) => {

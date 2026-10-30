@@ -3,9 +3,9 @@
 export const PILE_MAX_STACK = 20;
 export const CARD_GAP = 0.0004;
 export const FAN_COUNT = 5;
-export const FAN_HEIGHT = 0.15;
-export const FAN_SPREAD = Math.PI / 6;
-export const FAN_STEP_X = 0.035;
+export const FAN_HEIGHT = 0.08;
+export const FAN_SPREAD = Math.PI / 15;
+export const FAN_STEP_X = 0.055;
 const JITTER_POS = 0.001;
 const JITTER_ROT = (2 * Math.PI) / 180;
 
@@ -19,14 +19,14 @@ export function pickRandom(items, n, rng = Math.random) {
 }
 
 export function fanLayout(count) {
-  if (count === 1) return [{ x: 0, y: 0, z: 0, rotZ: 0 }];
+  if (count === 1) return [{ x: 0, y: 0, z: 0, rotY: 0 }];
   return Array.from({ length: count }, (_, i) => {
     const t = (i / (count - 1)) * 2 - 1;
     return {
       x: (t * FAN_STEP_X * (count - 1)) / 2,
-      y: -Math.abs(t) * 0.01,
-      z: i * 0.002,
-      rotZ: -t * FAN_SPREAD,
+      y: i * 0.002,
+      z: Math.abs(t) * 0.01,
+      rotY: -t * FAN_SPREAD,
     };
   });
 }
@@ -83,7 +83,8 @@ export class CardPile {
       this.fanCards = picks.map((face) => {
         const card = this.makeCard(face);
         card.userData.role = `fanCard:${this.id}`;
-        card.rotation.order = 'ZYX';
+        card.userData.face = face;
+        card.rotation.order = 'YXZ';
         Object.assign(card.rotation, { x: Math.PI, y: 0, z: 0 });
         Object.assign(card.position, { x: 0, y: startY, z: 0 });
         this.fanGroup.add(card);
@@ -94,7 +95,7 @@ export class CardPile {
         const slot = layout[i];
         await this.tweener.to(card.position, { y: 0, z: slot.z }, 0.4);
         await Promise.all([
-          this.tweener.to(card.rotation, { x: Math.PI / 2, z: slot.rotZ }, 0.4),
+          this.tweener.to(card.rotation, { x: 0, y: slot.rotY }, 0.4),
           this.tweener.to(card.position, { x: slot.x, y: slot.y }, 0.4),
         ]);
       }));
@@ -114,8 +115,8 @@ export class CardPile {
       const startY = this.topY - this.fanGroup.position.y;
       await Promise.all(this.fanCards.map(async (card) => {
         await Promise.all([
-          this.tweener.to(card.rotation, { x: Math.PI, z: 0 }, 0.4),
-          this.tweener.to(card.position, { x: 0, y: 0 }, 0.4),
+          this.tweener.to(card.rotation, { x: Math.PI, y: 0 }, 0.4),
+          this.tweener.to(card.position, { x: 0, y: 0, z: 0 }, 0.4),
         ]);
         await this.tweener.to(card.position, { y: startY, z: 0 }, 0.4);
       }));

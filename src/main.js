@@ -3,7 +3,8 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { Tweener } from './tween.js';
 import { dispatchTap } from './tap.js';
-import { pickRole } from './raycast.js';
+import { pickTarget } from './raycast.js';
+import { CardDetail } from './cardDetail.js';
 import { attachInput } from './input.js';
 import { createHolder, FRAMING_CLOSED, FRAMING_OPEN } from './holder.js';
 import { FreeView } from './freeView.js';
@@ -113,12 +114,14 @@ async function main() {
       const to = state === 'opening' || state === 'open' ? FRAMING_OPEN : FRAMING_CLOSED;
       tweener.to(holder.framing, { length: to.length, shift: to.shift }, 0.6);
     };
+    const detail = new CardDetail(document.getElementById('card-detail'));
     attachInput({
       element: container,
       onTap: async (x, y) => {
+        if (detail.isOpen) return;
         try {
-          const role = pickRole({ x, y, canvas: stage.renderer.domElement, camera: stage.camera, root: holder.holder });
-          if (role) await dispatchTap(role, built);
+          const target = pickTarget({ x, y, canvas: stage.renderer.domElement, camera: stage.camera, root: holder.holder });
+          if (target) await dispatchTap(target.role, { ...built, showCard: (url) => detail.show(url) }, target.face);
         } catch (err) {
           console.error(err);
         }

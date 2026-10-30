@@ -1,13 +1,17 @@
 // Maps a tapped object's role to box / pile actions.
 
-export function findRole(object) {
+export function findTagged(object) {
   for (let o = object; o; o = o.parent) {
-    if (o.userData && o.userData.role) return o.userData.role;
+    if (o.userData && o.userData.role) return o;
   }
   return null;
 }
 
-export function dispatchTap(role, { box, piles }) {
+export function findRole(object) {
+  return findTagged(object)?.userData.role ?? null;
+}
+
+export function dispatchTap(role, { box, piles, showCard }, face = null) {
   if (!role) return null;
   if (role === 'lid' || role === 'base') {
     if (box.state === 'closed') return box.open();
@@ -15,7 +19,10 @@ export function dispatchTap(role, { box, piles }) {
     if (role === 'lid' && box.state === 'open' && !pileBusy) return box.close();
     return null;
   }
-  const match = /^(?:pile|fanCard):(\w+)$/.exec(role);
-  if (match && box.state === 'open' && piles[match[1]]) return piles[match[1]].toggle();
+  const match = /^(pile|fanCard):(\w+)$/.exec(role);
+  if (!match || box.state !== 'open' || !piles[match[2]]) return null;
+  const pile = piles[match[2]];
+  if (match[1] === 'pile') return pile.toggle();
+  if (pile.state === 'fanned' && face) showCard(face);
   return null;
 }

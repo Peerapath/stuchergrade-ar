@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Tweener } from '../../src/tween.js';
 import {
-  CardPile, pickRandom, fanLayout, PILE_MAX_STACK, CARD_GAP, FAN_COUNT, FAN_HEIGHT, FAN_SPREAD,
+  CardPile, pickRandom, fanLayout, PILE_MAX_STACK, CARD_GAP, FAN_COUNT, FAN_HEIGHT, FAN_SPREAD, FAN_STEP_X,
 } from '../../src/cardPile.js';
 import { advance, fakeObject } from '../helpers.js';
 
@@ -18,7 +18,7 @@ function makePile(n = 30) {
     floorY: 0.002,
     origin: { x: -0.045, z: 0 },
     parent,
-    makeCard: (face) => { const c = fakeObject(); c.userData.face = face; made.push(c); return c; },
+    makeCard: (face) => { const c = fakeObject(); made.push({ card: c, face }); return c; },
     makeGroup: fakeObject,
     tweener: new Tweener(),
     rng: () => 0.5,
@@ -35,25 +35,29 @@ test('pickRandom returns n distinct items, or all when fewer', () => {
   assert.equal(pickRandom(faces(3), 5).length, 3);
 });
 
-test('fanLayout is symmetric with ±FAN_SPREAD at the ends', () => {
+test('fanLayout is flat: yaw ±FAN_SPREAD at the ends, layered upward, ends set back', () => {
   const l = fanLayout(5);
   assert.equal(l.length, 5);
-  assert.ok(near(l[0].rotZ, FAN_SPREAD) && near(l[4].rotZ, -FAN_SPREAD) && near(l[2].rotZ, 0));
-  assert.ok(near(l[0].x, -l[4].x) && l[0].x < 0);
-  assert.ok(l[4].z > l[0].z);
-  assert.deepEqual(fanLayout(1), [{ x: 0, y: 0, z: 0, rotZ: 0 }]);
+  assert.ok(near(FAN_SPREAD, (12 * Math.PI) / 180));
+  assert.ok(near(l[0].rotY, FAN_SPREAD) && near(l[4].rotY, -FAN_SPREAD) && near(l[2].rotY, 0));
+  assert.ok(near(l[0].x, -l[4].x) && l[0].x < 0 && near(l[2].x, 0));
+  assert.ok(near(l[4].x, (FAN_STEP_X * 4) / 2));
+  l.forEach((slot, i) => assert.ok(near(slot.y, i * 0.002)));
+  assert.ok(near(l[0].z, 0.01) && near(l[4].z, 0.01) && near(l[2].z, 0));
+  assert.deepEqual(fanLayout(1), [{ x: 0, y: 0, z: 0, rotY: 0 }]);
 });
 
 test('build stacks up to PILE_MAX_STACK face-down cards with the pile role', () => {
   const { pile, parent } = makePile(30);
   pile.build();
   assert.equal(pile.stack.length, PILE_MAX_STACK);
-  assert.ok(pile.stack.every((c) => c.userData.role === 'pile:good' && c.userData.face === null));
+  assert.ok(pile.stack.every((c) => c.userData.role === 'pile:good' && c.userData.face == null));
   assert.ok(pile.stack.every((c) => near(c.rotation.x, Math.PI)));
   assert.ok(pile.stack[1].position.y > pile.stack[0].position.y);
   assert.ok(near(pile.stack[0].position.x, -0.045));
   assert.ok(parent.children.includes(pile.fanGroup));
-  assert.ok(near(pile.fanGroup.position.y, 0.002 + FAN_HEIGHT));
+  assert.ok(near(pile.fanGroup.position.y, 0.002 + 0.08));
+  assert.equal(FAN_HEIGHT, 0.08);
 });
 
 test('fan raises FAN_COUNT distinct face-up cards into the fan layout', async () => {
@@ -70,10 +74,12 @@ test('fan raises FAN_COUNT distinct face-up cards into the fan layout', async ()
   const layout = fanLayout(FAN_COUNT);
   pile.fanCards.forEach((c, i) => {
     assert.equal(c.userData.role, 'fanCard:good');
-    assert.equal(c.rotation.order, 'ZYX');
-    assert.ok(near(c.rotation.x, Math.PI / 2));
-    assert.ok(near(c.rotation.z, layout[i].rotZ));
-    assert.ok(near(c.position.x, layout[i].x) && near(c.position.y, layout[i].y));
+    assert.equal(c.rotation.order, 'YXZ');
+    assert.ok(near(c.rotation.x, 0) && near(c.rotation.z, 0));
+    assert.ok(near(c.rotation.y, layout[i].rotY));
+    assert.ok(near(c.position.x, layout[i].x) && near(c.position.y, layout[i].y) && near(c.position.z, layout[i].z));
+    assert.equal(c.userData.face, pile.fanCards[i].userData.face);
+    assert.ok(typeof c.userData.face === 'string' && c.userData.face.endsWith('.jpg'));
   });
   assert.equal(pile.fanGroup.children.length, FAN_COUNT);
 });
