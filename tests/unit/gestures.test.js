@@ -147,3 +147,29 @@ test('unknown ids are ignored', () => {
   assert.deepEqual(g.move(9, 500, 500), []);
   assert.deepEqual(g.up(1, 0, 0), [{ type: 'tap', x: 0, y: 0 }]);
 });
+
+test('clear drops every pointer so the next single touch rotates instead of zooming', () => {
+  const g = new GestureTracker();
+  g.down(1, 0, 0);
+  g.down(2, 100, 0); // pointerup for both was lost
+  g.clear();
+  g.down(3, 50, 50);
+  const out = g.move(3, 80, 50);
+  assert.deepEqual(out, [{ type: 'rotate', dx: 30, dy: 0 }]);
+});
+
+test('clear makes the gesture tap-ineligible and leaves later gestures normal', () => {
+  const g = new GestureTracker();
+  g.down(1, 10, 10);
+  g.clear();
+  assert.deepEqual(g.up(1, 10, 10), []); // dropped pointer: no tap
+  g.down(2, 20, 20);
+  assert.deepEqual(g.up(2, 20, 20), [{ type: 'tap', x: 20, y: 20 }]);
+});
+
+test('clear on an empty tracker is harmless', () => {
+  const g = new GestureTracker();
+  g.clear();
+  g.down(1, 0, 0);
+  assert.deepEqual(g.up(1, 0, 0), [{ type: 'tap', x: 0, y: 0 }]);
+});

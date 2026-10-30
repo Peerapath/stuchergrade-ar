@@ -5,7 +5,7 @@ import { Tweener } from './tween.js';
 import { dispatchTap } from './tap.js';
 import { pickRole } from './raycast.js';
 import { attachInput } from './input.js';
-import { createHolder } from './holder.js';
+import { createHolder, FRAMING_CLOSED, FRAMING_OPEN } from './holder.js';
 import { FreeView } from './freeView.js';
 import { ViewMode } from './viewMode.js';
 import { buildContent, addLights, faceFansToCamera, TARGET_WIDTH_M } from './scene.js';
@@ -108,6 +108,11 @@ async function main() {
       markerScale: stage.markerScale,
     });
     addLights(stage.scene);
+    // Reframe the free view as the lid starts opening / closing (also covers a failed open/close reverting).
+    built.box.onStateChange = (state) => {
+      const to = state === 'opening' || state === 'open' ? FRAMING_OPEN : FRAMING_CLOSED;
+      tweener.to(holder.framing, { length: to.length, shift: to.shift }, 0.6);
+    };
     attachInput({
       element: container,
       onTap: async (x, y) => {
@@ -127,7 +132,6 @@ async function main() {
       const dt = Math.min(clock.getDelta(), 0.1);
       tweener.update(dt);
       holder.update({ anchor: stage.anchor, tracking, freeView, viewMode, dt });
-      holder.holder.updateMatrixWorld(true); // fans read content.matrixWorld below
       faceFansToCamera(built.piles, stage.camera, built.content);
       stage.renderer.render(stage.scene, stage.camera);
     });

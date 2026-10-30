@@ -50,6 +50,13 @@ export class GestureTracker {
     return [];
   }
 
+  // Drop every pointer (window blur, lost events): the next touch starts a fresh gesture and nothing taps.
+  clear() {
+    this._pointers.clear();
+    this._tapOk = false;
+    this._reset();
+  }
+
   // Pointer count changed: forget previous positions/distance so nothing jumps.
   _reset() {
     this._rotating = false;

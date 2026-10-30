@@ -94,3 +94,29 @@ test('open recovers to closed when a tween rejects', async () => {
   assert.equal(box.state, 'closed');
   assert.equal(box.busy, false);
 });
+
+test('onStateChange fires on every transition, including failure recovery', async () => {
+  const tw = new Tweener();
+  const seen = [];
+  const box = new BoxController({
+    lid: fakeObject(),
+    tweener: tw,
+    onStateChange: (state) => seen.push(state),
+  });
+  const opened = box.open();
+  await advance(tw, 1.2);
+  await opened;
+  const closed = box.close();
+  await advance(tw, 1.2);
+  await closed;
+  assert.deepEqual(seen, ['opening', 'open', 'closing', 'closed']);
+
+  const failing = new BoxController({
+    lid: fakeObject(),
+    tweener: { to: () => Promise.reject(new Error('x')) },
+    onStateChange: (state) => seen.push(state),
+  });
+  seen.length = 0;
+  await assert.rejects(failing.open(), /x/);
+  assert.deepEqual(seen, ['opening', 'closed']);
+});

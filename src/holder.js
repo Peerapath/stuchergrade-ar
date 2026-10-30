@@ -3,8 +3,12 @@
 import { Group, Vector3, Quaternion, Matrix4, Euler, MathUtils } from 'three';
 import { easeInOut } from './tween.js';
 
-const BOX_LENGTH_MARKERS = 3; // the box is 3 marker-widths long
-const SCREEN_FILL = 0.8; // free view: box length fills this fraction of the screen width
+const SCREEN_FILL = 0.8; // free view: the framed length fills this fraction of the screen width
+
+// Free-view framing, in marker widths: `length` is what must fit the screen width, `shift` is how far the
+// framed centre lies along the box's long axis from the base centre (the open lid sits beside the base).
+export const FRAMING_CLOSED = Object.freeze({ length: 3, shift: 0 });
+export const FRAMING_OPEN = Object.freeze({ length: 6.3, shift: 1.65 });
 
 const freePos = new Vector3();
 const freeQuat = new Quaternion();
@@ -27,12 +31,15 @@ export function createHolder({ scene, content, camera, markerScale }) {
   pivot.add(content);
   scene.add(holder);
 
+  // Tweened by the caller (see main.js) when the box opens or closes.
+  const framing = { ...FRAMING_CLOSED };
   let hasFrom = false;
+  let initialised = false;
 
   function freeTarget(pitch) {
     const vFov = MathUtils.degToRad(camera.fov);
     const hFov = 2 * Math.atan(Math.tan(vFov / 2) * camera.aspect);
-    const d = (BOX_LENGTH_MARKERS * markerScale / SCREEN_FILL) / (2 * Math.tan(hFov / 2));
+    const d = (framing.length * markerScale / SCREEN_FILL) / (2 * Math.tan(hFov / 2));
     freePos.set(0, 0, -d);
     freeQuat.setFromEuler(freeEuler.set(pitch - Math.PI / 2, 0, 0));
     freeScale.setScalar(markerScale);
@@ -46,10 +53,16 @@ export function createHolder({ scene, content, camera, markerScale }) {
     pivot.scale.setScalar(freeView.zoom);
 
     const { mode, t, switched } = viewMode.update(tracking, dt);
-    if (switched) {
+    if (switched && initialised) {
       holder.matrix.decompose(fromPos, fromQuat, fromScale);
       hasFrom = true;
     }
+
+    // Free view recentres the open layout (base + lid) by moving the pivot opposite to where the layout's
+    // centre ends up after yaw/zoom (1 pivot unit = 1 marker width); tracked view keeps the real position.
+    const freeWeight = mode === 'free' ? easeInOut(t) : 1 - easeInOut(t);
+    const offset = -framing.shift * freeView.zoom * freeWeight;
+    pivot.position.set(offset * Math.cos(freeView.yaw), offset * Math.sin(freeView.yaw), 0);
 
     if (mode === 'tracked' && anchor) targetMatrix.copy(anchor.matrix);
     else freeTarget(freeView.pitch);
@@ -65,7 +78,8 @@ export function createHolder({ scene, content, camera, markerScale }) {
       holder.matrix.copy(poseMatrix.compose(targetPos, targetQuat, targetScale));
     }
     holder.matrixWorldNeedsUpdate = true;
+    initialised = true;
   }
 
-  return { holder, pivot, update };
+  return { holder, pivot, framing, update };
 }
