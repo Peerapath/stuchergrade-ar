@@ -1,0 +1,3 @@
+tools/.venv/
+tools/build/
+node_modules/

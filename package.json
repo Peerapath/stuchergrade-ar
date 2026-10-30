@@ -1,0 +1,10 @@
+{
+  "name": "stuchergrade-webar",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test \"tests/unit/*.test.js\"",
+    "test:assets": "node --test \"tests/assets/*.test.js\"",
+    "serve": "node tools/serve.mjs"
+  }
+}
